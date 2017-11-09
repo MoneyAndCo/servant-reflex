@@ -36,54 +36,50 @@ module Servant.Reflex
 
 ------------------------------------------------------------------------------
 import           Control.Applicative
-import           Data.Monoid             ((<>))
-import qualified Data.Set                as Set
-import qualified Data.Text.Encoding      as E
-import           Data.CaseInsensitive    (mk)
+import           Data.CaseInsensitive   (mk)
 import           Data.Functor.Identity
-import           Data.Proxy              (Proxy (..))
-import qualified Data.Map                as Map
-import           Data.Text               (Text)
-import qualified Data.Text               as T
-import           GHC.Exts                (Constraint)
-import           GHC.TypeLits            (KnownSymbol, symbolVal)
-import           Servant.API             ((:<|>)(..),(:>), BasicAuth,
-                                          BasicAuthData, BuildHeadersTo(..),
-                                          Capture, contentType, Header,
-                                          Headers(..), HttpVersion, IsSecure,
-                                          MimeRender(..), MimeUnrender,
-                                          NoContent, QueryFlag, QueryParam,
-                                          QueryParams, Raw, ReflectMethod(..),
-                                          RemoteHost, ReqBody,
-                                          ToHttpApiData(..), Vault, Verb)
-import qualified Servant.Auth            as Auth
+import qualified Data.Map               as Map
+import           Data.Monoid            ((<>))
+import           Data.Proxy             (Proxy (..))
+import qualified Data.Set               as Set
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import qualified Data.Text.Encoding     as E
+import           GHC.Exts               (Constraint)
+import           GHC.TypeLits           (KnownSymbol, symbolVal)
+import           Servant.API            ((:<|>) (..), (:>), AuthProtect,
+                                         BasicAuth, BasicAuthData,
+                                         BuildHeadersTo (..), Capture, Header,
+                                         Headers (..), HttpVersion, IsSecure,
+                                         MimeRender (..), MimeUnrender,
+                                         NoContent, QueryFlag, QueryParam,
+                                         QueryParams, Raw, ReflectMethod (..),
+                                         RemoteHost, ReqBody,
+                                         ToHttpApiData (..), Vault, Verb,
+                                         contentType)
+import qualified Servant.Auth           as Auth
 
-import           Reflex.Dom              (Dynamic, Event, Reflex,
-                                          XhrRequest(..),
-                                          XhrResponseHeaders(..),
-                                          XhrResponse(..), attachPromptlyDynWith, constDyn, ffor, fmapMaybe,
-                                          leftmost, performRequestsAsync,
-                                          )
+import           Reflex.Dom             (Dynamic, Event, Reflex,
+                                         XhrRequest (..), XhrResponse (..),
+                                         XhrResponseHeaders (..),
+                                         attachPromptlyDynWith, constDyn, ffor,
+                                         fmapMaybe, leftmost,
+                                         performRequestsAsync)
 ------------------------------------------------------------------------------
-import           Servant.Common.BaseUrl  (BaseUrl(..), Scheme(..), baseUrlWidget,
-                                          showBaseUrl,
-                                          SupportsServantReflex)
-import           Servant.Common.Req      (ClientOptions(..),
-                                          defaultClientOptions,
-                                          Req, ReqResult(..), QParam(..),
-                                          QueryPart(..), addHeader, authData,
-                                          defReq, evalResponse, prependToPathParts,
-                                          -- performRequestCT,
-                                          performRequestsCT,
-                                          -- performRequestNoBody,
-                                          performRequestsNoBody,
-                                          performSomeRequestsAsync,
-                                          qParamToQueryPart, reqBody,
-                                          reqSuccess, reqFailure,
-                                          reqMethod, respHeaders,
-                                          response,
-                                          reqTag,
-                                          qParams, withCredentials)
+import           Servant.Common.BaseUrl (BaseUrl (..), Scheme (..),
+                                         SupportsServantReflex, baseUrlWidget,
+                                         showBaseUrl)
+import           Servant.Common.Req     (ClientOptions (..), QParam (..),
+                                         QueryPart (..), Req, ReqResult (..),
+                                         addHeader, authData, defReq,
+                                         defaultClientOptions, evalResponse,
+                                         performRequestsCT,
+                                         performRequestsNoBody,
+                                         performSomeRequestsAsync,
+                                         prependToPathParts, qParamToQueryPart,
+                                         qParams, reqBody, reqFailure,
+                                         reqMethod, reqSuccess, reqTag,
+                                         respHeaders, response, withCredentials)
 
 
 -- * Accessing APIs as a Client
@@ -571,3 +567,8 @@ type family HasCookieAuth xs :: Constraint where
 
 class CookieAuthNotEnabled
 
+instance (HasClient t m api tag) => HasClient t m (AuthProtect "cookie-auth" :> api) tag where
+
+  type Client t m (AuthProtect "cookie-auth" :> api) tag = Client t m api tag
+
+  clientWithRoute Proxy = clientWithRoute (Proxy :: Proxy api)
