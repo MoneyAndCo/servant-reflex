@@ -19,9 +19,11 @@ module Servant.Common.BaseUrl (
   , SupportsServantReflex
 ) where
 
+import           Control.Lens
 import           Control.Monad (join)
 -- import           Control.Monad.IO.Class (MonadIO)
 import           Control.Monad.Fix (MonadFix)
+import           Data.Maybe
 import           Data.Monoid ((<>))
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -76,7 +78,11 @@ baseUrlWidget :: forall t m .(SupportsServantReflex t m,
                               DomBuilder t m)
               => m (Dynamic t BaseUrl)
 baseUrlWidget = elClass "div" "base-url" $ do
-  urlWidget <- dropdown (0 :: Int) (constDyn $ 0 =: "BasePath" <> 1 =: "BaseUrlFull") def
+  urlWidget <-
+    dropdown . fromJust . buildDefault $
+    def &
+    dropdownConfig_initialValue ?~ (0 :: Int) &
+    dropdownConfig_options ?~ (constDyn $ 0 =: "BasePath" <> 1 =: "BaseUrlFull")
   let bUrlWidget = ffor (value urlWidget) $ \i -> case i of
         0 -> pathWidget
         1 -> fullUrlWidget
@@ -90,7 +96,11 @@ baseUrlWidget = elClass "div" "base-url" $ do
           return $ BasePath <$> value t
         fullUrlWidget :: m (Dynamic t BaseUrl)
         fullUrlWidget = do
-          schm <- dropdown Https (constDyn $ Https =: "https" <> Http =: "http") def
+          schm <-
+            dropdown . fromJust . buildDefault $
+            def &
+            dropdownConfig_initialValue ?~ Https &
+            dropdownConfig_options ?~ (constDyn $ Https =: "https" <> Http =: "http")
           srv  <- textInput def {_textInputConfig_attributes = constDyn $ "placeholder" =: "example.com"}
           text ":"
           prt  <- textInput def { _textInputConfig_attributes = constDyn $ "placeholder" =: "80"}
