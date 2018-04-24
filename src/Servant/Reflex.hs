@@ -49,8 +49,9 @@ import           GHC.Exts               (Constraint)
 import           GHC.TypeLits           (KnownSymbol, symbolVal)
 import           Servant.API            ((:<|>) (..), (:>), AuthProtect,
                                          BasicAuth, BasicAuthData,
-                                         BuildHeadersTo (..), Capture, Header,
-                                         Headers (..), HttpVersion, IsSecure,
+                                         BuildHeadersTo (..), Capture,
+                                         CaptureAll, Header, Headers (..),
+                                         HttpVersion, IsSecure,
                                          MimeRender (..), MimeUnrender,
                                          NoContent, QueryFlag, QueryParam,
                                          QueryParams, Raw, ReflectMethod (..),
@@ -157,6 +158,32 @@ instance (SupportsServantReflex t m, ToHttpApiData a, HasClient t m sublayout ta
                     (prependToPathParts p req)
                     baseurl opts
     where p = (fmap . fmap) (toUrlPiece) val
+
+
+-- CaptureAll. Example:
+-- > type MyApi = "books" :> CaptureAll "isbn" Text :> Get '[JSON] Book
+-- >
+-- > myApi :: Proxy MyApi = Proxy
+-- >
+-- > getBook :: SupportsServantReflex t m
+--           => Dynamic t BaseUrl
+--           -> Dynamic t (Either Text [a])
+--           -> Event t l
+--           -> m (Event t (l, ReqResult Book))
+-- > getBook = client myApi (constDyn host)
+
+instance (SupportsServantReflex t m, ToHttpApiData a, HasClient t m sublayout tag)
+      => HasClient t m (CaptureAll capture a :> sublayout) tag where
+
+  type Client t m (CaptureAll capture a :> sublayout) tag =
+    Dynamic t (Either Text [a]) -> Client t m sublayout tag
+
+  clientWithRoute Proxy q t req baseurl opts vals =
+    clientWithRoute (Proxy :: Proxy sublayout)
+                    q t
+                    (prependToPathParts ps req)
+                    baseurl opts
+    where ps = (fmap . fmap) (T.intercalate "/" . fmap toUrlPiece) vals
 
 
 -- VERB (Returning content) --
